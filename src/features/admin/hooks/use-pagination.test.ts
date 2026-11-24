@@ -20,6 +20,15 @@ describe('usePagination', () => {
     expect(result.current.pageSize).toBe(50)
   })
 
+  it('keeps pagination props stable across re-renders', () => {
+    const { result, rerender } = renderHook(() => usePagination())
+    const firstProps = result.current.paginationProps
+
+    rerender()
+
+    expect(result.current.paginationProps).toBe(firstProps)
+  })
+
   it('exposes a reset function for filter changes', () => {
     const { result } = renderHook(() => usePagination(10))
 

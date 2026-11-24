@@ -1,35 +1,30 @@
 import { Badge } from '@/components/ui/badge'
 import type { PublicMenu, PublicMenuItem, QuoteTotals } from '../api/types'
+import type { CatalogFilter } from '../hooks/use-catalog-filter'
 import { CustomerTopBar } from './customer-top-bar'
 import { MenuCatalog } from './menu-catalog'
 import { MenuOrderSummary, MobileCartBar } from './menu-order-summary'
 
 interface MenuStageProps {
   menu: PublicMenu
-  search: string
-  activeCategory: string
+  catalog: CatalogFilter
   cartCount: number
   hasLines: boolean
   quote: QuoteTotals | undefined
   quoteLoading: boolean
   quoteError: string | null
-  onSearchChange: (search: string) => void
-  onCategoryChange: (categoryId: string) => void
   onSelectItem: (item: PublicMenuItem) => void
   onOpenCart: () => void
 }
 
 export function MenuStage({
   menu,
-  search,
-  activeCategory,
+  catalog,
   cartCount,
   hasLines,
   quote,
   quoteLoading,
   quoteError,
-  onSearchChange,
-  onCategoryChange,
   onSelectItem,
   onOpenCart,
 }: MenuStageProps) {
@@ -74,14 +69,7 @@ export function MenuStage({
 
         <div className="grid gap-10 lg:grid-cols-[1fr_300px] lg:items-start lg:gap-12">
           <div className="min-w-0">
-            <MenuCatalog
-              categories={menu.categories}
-              search={search}
-              activeCategory={activeCategory}
-              onSearchChange={onSearchChange}
-              onCategoryChange={onCategoryChange}
-              onSelectItem={onSelectItem}
-            />
+            <MenuCatalog catalog={catalog} onSelectItem={onSelectItem} />
           </div>
 
           <MenuOrderSummary

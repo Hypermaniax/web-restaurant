@@ -44,6 +44,40 @@ describe('useDialogForm', () => {
     })
   })
 
+  it('does not reset the form while the dialog is closed', async () => {
+    const { result, rerender } = renderHook(
+      ({ open, entity }: { open: boolean; entity: Entity | null }) =>
+        useDialogForm({
+          open,
+          entity,
+          resolver: zodResolver(schema),
+          emptyValues,
+          toValues,
+        }),
+      {
+        initialProps: {
+          open: true,
+          entity: {
+            id: 'item-1',
+            name: 'Kopi',
+            isActive: false,
+          } as Entity | null,
+        },
+      },
+    )
+
+    await waitFor(() => {
+      expect(result.current.getValues('name')).toBe('Kopi')
+    })
+
+    rerender({
+      open: false,
+      entity: { id: 'item-2', name: 'Teh', isActive: true },
+    })
+
+    expect(result.current.getValues('name')).toBe('Kopi')
+  })
+
   it('resets to empty values when the dialog opens for creating', async () => {
     const { result, rerender } = renderHook(
       ({ open, entity }: { open: boolean; entity: Entity | null }) =>

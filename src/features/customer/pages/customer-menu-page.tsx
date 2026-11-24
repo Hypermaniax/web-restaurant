@@ -11,6 +11,7 @@ import { ItemSheet } from '../components/item-sheet'
 import { MenuLoading, TableError } from '../components/menu-feedback'
 import { MenuStage } from '../components/menu-stage'
 import { PaymentPanel } from '../components/payment-panel'
+import { useCatalogFilter } from '../hooks/use-catalog-filter'
 import { useCustomerOrder } from '../hooks/use-customer-order'
 import { toQuoteItems, totalQuantity } from '../lib/cart'
 import { getCustomerErrorMessage } from '../lib/errors'
@@ -31,8 +32,6 @@ export function CustomerMenuPage() {
   const setQty = useCartStore((state) => state.setQty)
   const removeLine = useCartStore((state) => state.removeLine)
   const clearCart = useCartStore((state) => state.clear)
-  const [search, setSearch] = useState('')
-  const [activeCategory, setActiveCategory] = useState('all')
   const [cartOpen, setCartOpen] = useState(false)
   const [itemSheet, setItemSheet] = useState<ItemSheetState | null>(null)
 
@@ -43,6 +42,7 @@ export function CustomerMenuPage() {
   const quote = quoteQuery.data
   const order = useCustomerOrder({ tableCode, quote, quoteItems })
   const menu = menuQuery.data
+  const catalog = useCatalogFilter(menu?.categories)
 
   useEffect(() => {
     if (tableCode) {
@@ -172,15 +172,12 @@ export function CustomerMenuPage() {
     <>
       <MenuStage
         menu={menu}
-        search={search}
-        activeCategory={activeCategory}
+        catalog={catalog}
         cartCount={cartCount}
         hasLines={lines.length > 0}
         quote={quote}
         quoteLoading={quoteLoading}
         quoteError={quoteError}
-        onSearchChange={setSearch}
-        onCategoryChange={setActiveCategory}
         onSelectItem={openItem}
         onOpenCart={() => setCartOpen(true)}
       />

@@ -75,6 +75,25 @@ describe('useAdminMutation', () => {
     expect(success).toHaveBeenCalledWith('Disimpan')
   })
 
+  it('does not show a success toast when no message is configured', async () => {
+    const queryClient = createQueryClient()
+    const success = vi.spyOn(toast, 'success')
+
+    const { result } = renderHook(
+      () =>
+        useAdminMutation({
+          mutationFn: async () => ({}),
+        }),
+      { wrapper: wrapperFor(queryClient) },
+    )
+
+    await act(async () => {
+      await result.current.mutateAsync(undefined)
+    })
+
+    expect(success).not.toHaveBeenCalled()
+  })
+
   it('reports mutation errors', async () => {
     const queryClient = createQueryClient()
     const success = vi.spyOn(toast, 'success')

@@ -6,6 +6,8 @@ import {
 import { toast } from 'sonner'
 import { getErrorMessage } from '../lib/errors'
 
+const EMPTY_INVALIDATE_KEYS: readonly QueryKey[] = []
+
 interface UseAdminMutationOptions<TData, TVariables> {
   mutationFn: (variables: TVariables) => Promise<TData>
   successMessage?: string
@@ -26,7 +28,7 @@ function getSuccessMessage(data: unknown, fallback: string): string {
 export function useAdminMutation<TData, TVariables>({
   mutationFn,
   successMessage,
-  invalidateKeys = [],
+  invalidateKeys = EMPTY_INVALIDATE_KEYS,
   onSuccess,
 }: UseAdminMutationOptions<TData, TVariables>) {
   const queryClient = useQueryClient()

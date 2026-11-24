@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import { Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -10,31 +9,25 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
-import type { PublicCategory, PublicMenuItem } from '../api/types'
-import { filterMenuCategories } from '../lib/menu'
+import type { PublicMenuItem } from '../api/types'
+import type { CatalogFilter } from '../hooks/use-catalog-filter'
 import { MenuItemRow } from './menu-item-row'
 
 interface MenuCatalogProps {
-  categories: PublicCategory[]
-  search: string
-  activeCategory: string
-  onSearchChange: (search: string) => void
-  onCategoryChange: (categoryId: string) => void
+  catalog: CatalogFilter
   onSelectItem: (item: PublicMenuItem) => void
 }
 
-export function MenuCatalog({
-  categories,
-  search,
-  activeCategory,
-  onSearchChange,
-  onCategoryChange,
-  onSelectItem,
-}: MenuCatalogProps) {
-  const visibleCategories = useMemo(
-    () => filterMenuCategories(categories, search, activeCategory),
-    [activeCategory, categories, search],
-  )
+export function MenuCatalog({ catalog, onSelectItem }: MenuCatalogProps) {
+  const {
+    categories,
+    search,
+    activeCategory,
+    visibleCategories,
+    setSearch,
+    setActiveCategory,
+    resetFilters,
+  } = catalog
 
   return (
     <>
@@ -43,7 +36,7 @@ export function MenuCatalog({
           <Search className="text-pine/40 pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2" />
           <Input
             value={search}
-            onChange={(event) => onSearchChange(event.target.value)}
+            onChange={(event) => setSearch(event.target.value)}
             placeholder="Cari menu…"
             aria-label="Cari menu"
             className="bg-card border-pine/10 h-11 pl-10"
@@ -56,7 +49,7 @@ export function MenuCatalog({
             variant={activeCategory === 'all' ? 'default' : 'outline'}
             size="sm"
             className="shrink-0 rounded-full"
-            onClick={() => onCategoryChange('all')}
+            onClick={() => setActiveCategory('all')}
           >
             Semua
           </Button>
@@ -67,7 +60,7 @@ export function MenuCatalog({
               variant={activeCategory === category.id ? 'default' : 'outline'}
               size="sm"
               className="shrink-0 rounded-full"
-              onClick={() => onCategoryChange(category.id)}
+              onClick={() => setActiveCategory(category.id)}
             >
               {category.name}
             </Button>
@@ -93,14 +86,7 @@ export function MenuCatalog({
             </EmptyHeader>
             {search ? (
               <EmptyContent>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    onSearchChange('')
-                    onCategoryChange('all')
-                  }}
-                >
+                <Button type="button" variant="outline" onClick={resetFilters}>
                   Hapus pencarian
                 </Button>
               </EmptyContent>

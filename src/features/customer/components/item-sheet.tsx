@@ -1,4 +1,3 @@
-import { useMemo, useState } from 'react'
 import {
   Sheet,
   SheetContent,
@@ -6,19 +5,9 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
-import type {
-  PublicMenuItem,
-  PublicModifierGroup,
-  PublicModifierOption,
-} from '../api/types'
+import type { PublicMenuItem } from '../api/types'
 import type { CartLine, CartLineInput } from '../stores/cart-store'
-import {
-  defaultSelection,
-  getSelectionErrors,
-  lineSelection,
-  nextSelection,
-  selectedModifiers,
-} from '../lib/item-selection'
+import { useItemSheetState } from '../hooks/use-item-sheet-state'
 import { ItemModifierGroup } from './item-modifier-group'
 import { ItemNotesField } from './item-notes-field'
 import { ItemSheetFooter } from './item-sheet-footer'
@@ -39,33 +28,23 @@ export function ItemSheet({
   onOpenChange,
   onSave,
 }: ItemSheetProps) {
-  const [selected, setSelected] = useState<Record<string, string[]>>(() =>
-    line ? lineSelection(item, line.modifierOptionIds) : defaultSelection(item),
-  )
-  const [qty, setQty] = useState(line?.qty ?? 1)
-  const [notes, setNotes] = useState(line?.notes ?? '')
-  const [showErrors, setShowErrors] = useState(false)
-
-  const errors = useMemo(
-    () => getSelectionErrors(item, selected),
-    [item, selected],
-  )
-
-  function toggleOption(
-    group: PublicModifierGroup,
-    option: PublicModifierOption,
-  ) {
-    const next = nextSelection(group, option, selected[group.id] ?? [])
-    if (!next) return
-    setSelected({ ...selected, [group.id]: next })
-  }
+  const {
+    selected,
+    qty,
+    notes,
+    showErrors,
+    errors,
+    modifiers,
+    toggleOption,
+    decreaseQty,
+    increaseQty,
+    setNotes,
+    validate,
+  } = useItemSheetState(item, line)
 
   function handleSave() {
-    setShowErrors(true)
+    if (!validate()) return
 
-    if (!item.isAvailable || Object.keys(errors).length > 0) return
-
-    const modifiers = selectedModifiers(item, selected)
     onSave({
       menuItemId: item.id,
       name: item.name,
@@ -118,8 +97,8 @@ export function ItemSheet({
           qty={qty}
           line={line}
           isAvailable={item.isAvailable}
-          onDecrease={() => setQty((current) => Math.max(1, current - 1))}
-          onIncrease={() => setQty((current) => Math.min(99, current + 1))}
+          onDecrease={decreaseQty}
+          onIncrease={increaseQty}
           onSave={handleSave}
         />
       </SheetContent>

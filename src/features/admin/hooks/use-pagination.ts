@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 
 export function usePagination(initialPageSize = 20) {
   const [page, setPage] = useState(1)
@@ -11,13 +11,13 @@ export function usePagination(initialPageSize = 20) {
     setPage(1)
   }, [])
 
-  return {
-    page,
-    pageSize,
-    resetPage,
-    paginationProps: {
+  const paginationProps = useMemo(
+    () => ({
       onPageChange: setPage,
       onPageSizeChange: changePageSize,
-    },
-  }
+    }),
+    [changePageSize, setPage],
+  )
+
+  return { page, pageSize, resetPage, paginationProps }
 }
