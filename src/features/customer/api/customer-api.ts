@@ -38,6 +38,7 @@ export const customerApi = {
     items: QuoteInputItem[],
     input: {
       customerName?: string | null
+      customerEmail?: string | null
       notes?: string | null
       idempotencyKey: string
     },
@@ -50,6 +51,7 @@ export const customerApi = {
         tableCode,
         items,
         customerName: input.customerName ?? null,
+        customerEmail: input.customerEmail ?? null,
         notes: input.notes ?? null,
       }),
     }),

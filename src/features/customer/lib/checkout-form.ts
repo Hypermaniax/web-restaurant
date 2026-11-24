@@ -7,6 +7,13 @@ export const checkoutSchema = z.object({
     .max(80, 'Nama maksimal 80 karakter.')
     .optional()
     .or(z.literal('')),
+  customerEmail: z
+    .string()
+    .trim()
+    .max(254, 'Email maksimal 254 karakter.')
+    .email('Format email belum benar.')
+    .optional()
+    .or(z.literal('')),
   notes: z
     .string()
     .trim()

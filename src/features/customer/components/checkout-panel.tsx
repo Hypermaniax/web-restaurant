@@ -42,6 +42,7 @@ export function CheckoutPanel({
     resolver: zodResolver(checkoutSchema),
     defaultValues: {
       customerName: '',
+      customerEmail: '',
       notes: '',
       paymentMethod: 'QRIS',
     },

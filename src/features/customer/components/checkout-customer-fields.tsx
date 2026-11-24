@@ -44,6 +44,26 @@ export function CheckoutCustomerFields({ form }: CheckoutCustomerFieldsProps) {
         </Field>
 
         <Field>
+          <FieldLabel htmlFor="customer-email">Email struk</FieldLabel>
+          <Input
+            id="customer-email"
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            placeholder="nama@email.com"
+            maxLength={254}
+            aria-invalid={Boolean(form.formState.errors.customerEmail)}
+            {...form.register('customerEmail')}
+          />
+          <FieldDescription>
+            Opsional. Struk PDF dikirim ke email setelah pembayaran lunas.
+          </FieldDescription>
+          <FieldError>
+            {form.formState.errors.customerEmail?.message}
+          </FieldError>
+        </Field>
+
+        <Field>
           <FieldLabel htmlFor="order-notes">Catatan pesanan</FieldLabel>
           <Textarea
             id="order-notes"

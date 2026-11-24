@@ -80,6 +80,7 @@ export function useCustomerOrder({
     try {
       const order = await customerApi.createOrder(tableCode, quoteItems, {
         customerName: values.customerName || null,
+        customerEmail: values.customerEmail || null,
         notes: values.notes || null,
         idempotencyKey: key,
       })
