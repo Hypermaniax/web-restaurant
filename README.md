@@ -27,6 +27,12 @@ pnpm test
 pnpm build
 ```
 
+## Struktur test
+
+- `src/test/unit/` — test logika, hook, store, API client, dan utilitas.
+- `src/test/components/` — test komponen dan halaman.
+- `src/test/setup.ts` — setup global Vitest.
+
 ## Route
 
 | Route          | Keterangan           |
