@@ -1,5 +1,6 @@
 import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { AdminErrorState } from './admin-error-state'
 import { DataTableSkeleton } from './data-table-skeleton'
 import { EmptyState } from './empty-state'
 
@@ -19,13 +20,11 @@ interface CategoriesErrorProps {
 
 export function CategoriesError({ message, onRetry }: CategoriesErrorProps) {
   return (
-    <div className="border-destructive/20 bg-destructive/5 rounded-2xl border p-6">
-      <p className="text-destructive font-semibold">Kategori gagal dimuat</p>
-      <p className="text-muted-foreground mt-1 text-sm">{message}</p>
-      <Button className="mt-4" variant="outline" onClick={onRetry}>
-        Coba lagi
-      </Button>
-    </div>
+    <AdminErrorState
+      title="Kategori gagal dimuat"
+      message={message}
+      onRetry={onRetry}
+    />
   )
 }
 

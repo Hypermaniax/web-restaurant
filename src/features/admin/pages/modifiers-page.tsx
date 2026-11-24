@@ -1,19 +1,25 @@
 import { Plus } from 'lucide-react'
-import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { adminApi, adminKeys, useModifierGroupsPage } from '../api/admin-api'
 import type { ModifierGroup, ModifierOption } from '../api/types'
-import { ConfirmDialog } from '../components/confirm-dialog'
-import { EmptyState } from '../components/empty-state'
+import {
+  ModifierGroupDeleteDialog,
+  ModifierOptionDeleteDialog,
+} from '../components/modifier-delete-dialogs'
 import { ModifierGroupCard } from '../components/modifier-group-card'
 import { ModifierGroupDialog } from '../components/modifier-group-dialog'
+import {
+  ModifiersEmpty,
+  ModifiersError,
+} from '../components/modifiers-feedback'
 import { ModifiersLoading } from '../components/modifiers-loading'
 import { ModifierOptionDialog } from '../components/modifier-option-dialog'
 import { Pagination } from '../components/pagination'
 import { PageHeader } from '../components/page-header'
-import { getErrorMessage } from '../lib/errors'
 import { useAdminMutation } from '../hooks/use-admin-mutation'
+import { useModifierDialogs } from '../hooks/use-modifier-dialogs'
 import { usePagination } from '../hooks/use-pagination'
+import { getErrorMessage } from '../lib/errors'
 
 export function ModifiersPage() {
   const { page, pageSize, paginationProps } = usePagination()
@@ -22,24 +28,14 @@ export function ModifiersPage() {
     page,
     pageSize,
   )
-  const [groupOpen, setGroupOpen] = useState(false)
-  const [optionOpen, setOptionOpen] = useState(false)
-  const [editingGroup, setEditingGroup] = useState<ModifierGroup | null>(null)
-  const [editingOption, setEditingOption] = useState<ModifierOption | null>(
-    null,
-  )
-  const [optionGroup, setOptionGroup] = useState<ModifierGroup | null>(null)
-  const [deletingGroup, setDeletingGroup] = useState<ModifierGroup | null>(null)
-  const [deletingOption, setDeletingOption] = useState<ModifierOption | null>(
-    null,
-  )
+  const dialogs = useModifierDialogs()
 
   const removeGroup = useAdminMutation({
     mutationFn: (group: ModifierGroup) =>
       adminApi.modifiers.removeGroup(group.id),
     successMessage: 'Grup modifier dinonaktifkan',
     invalidateKeys: [adminKeys.modifiers],
-    onSuccess: () => setDeletingGroup(null),
+    onSuccess: () => dialogs.setDeletingGroup(null),
   })
 
   const removeOption = useAdminMutation({
@@ -47,30 +43,8 @@ export function ModifiersPage() {
       adminApi.modifiers.removeOption(option.id),
     successMessage: 'Opsi modifier dinonaktifkan',
     invalidateKeys: [adminKeys.modifiers],
-    onSuccess: () => setDeletingOption(null),
+    onSuccess: () => dialogs.setDeletingOption(null),
   })
-
-  function openCreateGroup() {
-    setEditingGroup(null)
-    setGroupOpen(true)
-  }
-
-  function openEditGroup(group: ModifierGroup) {
-    setEditingGroup(group)
-    setGroupOpen(true)
-  }
-
-  function openCreateOption(group: ModifierGroup) {
-    setOptionGroup(group)
-    setEditingOption(null)
-    setOptionOpen(true)
-  }
-
-  function openEditOption(group: ModifierGroup, option: ModifierOption) {
-    setOptionGroup(group)
-    setEditingOption(option)
-    setOptionOpen(true)
-  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -79,7 +53,7 @@ export function ModifiersPage() {
         title="Modifier"
         description="Buat pilihan tambahan seperti level pedas, topping, atau ukuran."
         actions={
-          <Button variant="accent" onClick={openCreateGroup}>
+          <Button variant="accent" onClick={dialogs.openCreateGroup}>
             <Plus />
             Tambah grup
           </Button>
@@ -89,21 +63,10 @@ export function ModifiersPage() {
       {isLoading ? (
         <ModifiersLoading />
       ) : isError ? (
-        <div className="border-destructive/20 bg-destructive/5 rounded-2xl border p-6">
-          <p className="text-destructive font-semibold">
-            Modifier gagal dimuat
-          </p>
-          <p className="text-muted-foreground mt-1 text-sm">
-            {getErrorMessage(error)}
-          </p>
-          <Button
-            className="mt-4"
-            variant="outline"
-            onClick={() => void refetch()}
-          >
-            Coba lagi
-          </Button>
-        </div>
+        <ModifiersError
+          message={getErrorMessage(error)}
+          onRetry={() => void refetch()}
+        />
       ) : data && data.meta.total > 0 ? (
         <>
           {data.items.length > 0 ? (
@@ -112,11 +75,11 @@ export function ModifiersPage() {
                 <ModifierGroupCard
                   key={group.id}
                   group={group}
-                  onEditGroup={openEditGroup}
-                  onCreateOption={openCreateOption}
-                  onEditOption={openEditOption}
-                  onDeleteGroup={setDeletingGroup}
-                  onDeleteOption={setDeletingOption}
+                  onEditGroup={dialogs.openEditGroup}
+                  onCreateOption={dialogs.openCreateOption}
+                  onEditOption={dialogs.openEditOption}
+                  onDeleteGroup={dialogs.setDeletingGroup}
+                  onDeleteOption={dialogs.setDeletingOption}
                 />
               ))}
             </div>
@@ -124,64 +87,33 @@ export function ModifiersPage() {
           <Pagination meta={data.meta} {...paginationProps} />
         </>
       ) : (
-        <EmptyState
-          title="Belum ada modifier"
-          description="Buat grup modifier pertama untuk pilihan tambahan di menu."
-          action={
-            <Button variant="accent" onClick={openCreateGroup}>
-              <Plus />
-              Tambah grup
-            </Button>
-          }
-        />
+        <ModifiersEmpty onCreate={dialogs.openCreateGroup} />
       )}
 
       <ModifierGroupDialog
-        open={groupOpen}
-        onOpenChange={setGroupOpen}
-        group={editingGroup}
+        open={dialogs.groupOpen}
+        onOpenChange={dialogs.setGroupOpen}
+        group={dialogs.editingGroup}
       />
       <ModifierOptionDialog
-        open={optionOpen}
-        onOpenChange={setOptionOpen}
-        group={optionGroup}
-        option={editingOption}
+        open={dialogs.optionOpen}
+        onOpenChange={dialogs.setOptionOpen}
+        group={dialogs.optionGroup}
+        option={dialogs.editingOption}
       />
 
-      <ConfirmDialog
-        open={Boolean(deletingGroup)}
-        onOpenChange={(open) => {
-          if (!open) setDeletingGroup(null)
-        }}
-        title="Nonaktifkan grup modifier?"
-        description={
-          deletingGroup
-            ? `Grup “${deletingGroup.name}” tidak akan dipakai di menu.`
-            : ''
-        }
-        confirmLabel="Nonaktifkan"
+      <ModifierGroupDeleteDialog
+        group={dialogs.deletingGroup}
         isPending={removeGroup.isPending}
-        onConfirm={() => {
-          if (deletingGroup) removeGroup.mutate(deletingGroup)
-        }}
+        onClose={() => dialogs.setDeletingGroup(null)}
+        onConfirm={removeGroup.mutate}
       />
 
-      <ConfirmDialog
-        open={Boolean(deletingOption)}
-        onOpenChange={(open) => {
-          if (!open) setDeletingOption(null)
-        }}
-        title="Nonaktifkan opsi?"
-        description={
-          deletingOption
-            ? `Opsi “${deletingOption.name}” tidak akan tampil di modifier.`
-            : ''
-        }
-        confirmLabel="Nonaktifkan"
+      <ModifierOptionDeleteDialog
+        option={dialogs.deletingOption}
         isPending={removeOption.isPending}
-        onConfirm={() => {
-          if (deletingOption) removeOption.mutate(deletingOption)
-        }}
+        onClose={() => dialogs.setDeletingOption(null)}
+        onConfirm={removeOption.mutate}
       />
     </div>
   )

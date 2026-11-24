@@ -47,6 +47,15 @@ const order: CreatedOrder = {
 
 const quoteItems = [{ menuItemId: 'nasi', qty: 1 }]
 
+const qris = {
+  paymentId: 'pay-1',
+  referenceId: 'ref-1',
+  status: 'PENDING' as const,
+  amount: 32340,
+  qrString: 'qr-string',
+  expiresAt: '2026-11-22T00:30:00.000Z',
+}
+
 describe('useCustomerOrder', () => {
   beforeEach(() => {
     vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined)
@@ -89,14 +98,6 @@ describe('useCustomerOrder', () => {
   })
 
   it('requests a QRIS payment and stores the payment', async () => {
-    const qris = {
-      paymentId: 'pay-1',
-      referenceId: 'ref-1',
-      status: 'PENDING',
-      amount: 32340,
-      qrString: 'qr-string',
-      expiresAt: '2026-11-22T00:30:00.000Z',
-    }
     vi.spyOn(customerApi, 'createOrder').mockResolvedValue(order)
     const payOnline = vi.spyOn(customerApi, 'payOnline').mockResolvedValue(qris)
     const { result } = renderHook(() =>
@@ -136,5 +137,48 @@ describe('useCustomerOrder', () => {
     expect(simulatePayment).toHaveBeenCalledWith('M01', order.id)
     expect(result.current.simulationNotice).toContain('Menunggu status')
     expect(result.current.simulationError).toBeNull()
+  })
+
+  it('clears payment feedback when switching to cash and returning to menu', async () => {
+    vi.spyOn(customerApi, 'createOrder').mockResolvedValue(order)
+    vi.spyOn(customerApi, 'payOnline').mockResolvedValue(qris)
+    vi.spyOn(customerApi, 'simulatePayment').mockResolvedValue({
+      status: 'PENDING',
+      message: 'Simulasi pembayaran dikirim ke Xendit',
+    })
+    const { result } = renderHook(() =>
+      useCustomerOrder({ tableCode: 'M01', quote, quoteItems }),
+    )
+
+    await act(async () => {
+      await result.current.submitCheckout({
+        customerName: '',
+        notes: '',
+        paymentMethod: 'QRIS',
+      })
+    })
+    await waitFor(() => {
+      expect(result.current.qris).toEqual(qris)
+    })
+
+    await act(async () => {
+      await result.current.simulatePayment(order)
+    })
+    expect(result.current.simulationNotice).toContain('Menunggu status')
+
+    act(() => {
+      result.current.switchToCash()
+    })
+    expect(result.current.paymentMethod).toBe('CASH')
+    expect(result.current.qris).toBeNull()
+    expect(result.current.simulationNotice).toBeNull()
+
+    act(() => {
+      result.current.backToMenu()
+    })
+    expect(result.current.stage).toBe('menu')
+    expect(result.current.activeOrder).toBeNull()
+    expect(result.current.paymentMethod).toBeNull()
+    expect(result.current.qris).toBeNull()
   })
 })

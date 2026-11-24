@@ -85,6 +85,36 @@ describe('SettingsPage', () => {
     expect(screen.getByText('http://localhost:5173')).toBeInTheDocument()
   })
 
+  it('shows an admin error and retries both queries', async () => {
+    const refetchSettings = vi.fn()
+    const refetchTaxRules = vi.fn()
+    vi.mocked(useSettings).mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: true,
+      error: new Error('Gagal memuat'),
+      refetch: refetchSettings,
+    } as never)
+    vi.mocked(useTaxRules).mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: refetchTaxRules,
+    } as never)
+    const user = userEvent.setup()
+
+    renderPage()
+
+    expect(screen.getByText('Gagal memuat pengaturan')).toBeInTheDocument()
+    expect(screen.getByText('Gagal memuat')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Coba lagi' }))
+
+    expect(refetchSettings).toHaveBeenCalledOnce()
+    expect(refetchTaxRules).toHaveBeenCalledOnce()
+  })
+
   it('saves settings and both tax rules with mapped values', async () => {
     const update = vi
       .spyOn(adminApi.settings, 'update')

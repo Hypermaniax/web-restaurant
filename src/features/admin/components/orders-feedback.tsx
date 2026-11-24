@@ -1,5 +1,6 @@
 import { Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { AdminErrorState } from './admin-error-state'
 import { DataTableSkeleton } from './data-table-skeleton'
 import { EmptyState } from './empty-state'
 
@@ -26,13 +27,11 @@ interface OrdersErrorProps {
 
 export function OrdersError({ message, onRetry }: OrdersErrorProps) {
   return (
-    <div className="border-destructive/20 bg-destructive/5 rounded-2xl border p-6">
-      <p className="text-destructive font-semibold">Order gagal dimuat</p>
-      <p className="text-muted-foreground mt-1 text-sm">{message}</p>
-      <Button className="mt-4" variant="outline" onClick={onRetry}>
-        Coba lagi
-      </Button>
-    </div>
+    <AdminErrorState
+      title="Order gagal dimuat"
+      message={message}
+      onRetry={onRetry}
+    />
   )
 }
 

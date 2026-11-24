@@ -2,6 +2,7 @@ import { Plus, TriangleAlert } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { AdminErrorState } from './admin-error-state'
 import { EmptyState } from './empty-state'
 
 interface TablesQrWarningProps {
@@ -61,13 +62,11 @@ interface TablesErrorProps {
 
 export function TablesError({ message, onRetry }: TablesErrorProps) {
   return (
-    <div className="border-destructive/20 bg-destructive/5 rounded-2xl border p-6">
-      <p className="text-destructive font-semibold">Meja gagal dimuat</p>
-      <p className="text-muted-foreground mt-1 text-sm">{message}</p>
-      <Button className="mt-4" variant="outline" onClick={onRetry}>
-        Coba lagi
-      </Button>
-    </div>
+    <AdminErrorState
+      title="Meja gagal dimuat"
+      message={message}
+      onRetry={onRetry}
+    />
   )
 }
 

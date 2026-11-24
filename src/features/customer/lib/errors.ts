@@ -1,13 +1,7 @@
-import { ApiError } from '@/lib/api/client'
+import { getErrorMessage as getUnknownErrorMessage } from '@/lib/errors'
+
+const FALLBACK_MESSAGE = 'Terjadi kendala. Coba lagi sebentar lagi.'
 
 export function getCustomerErrorMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    return error.message
-  }
-
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  return 'Terjadi kendala. Coba lagi sebentar lagi.'
+  return getUnknownErrorMessage(error, FALLBACK_MESSAGE)
 }

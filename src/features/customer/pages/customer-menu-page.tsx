@@ -1,102 +1,15 @@
-import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { ApiError } from '@/lib/api/client'
-import { ENABLE_PAYMENT_SIMULATOR } from '@/lib/env'
-import { usePublicMenu, useQuote } from '../api/customer-api'
-import type { PublicMenuItem } from '../api/types'
-import { CartSheet } from '../components/cart-sheet'
-import { CheckoutPanel } from '../components/checkout-panel'
-import { CustomerTopBar } from '../components/customer-top-bar'
-import { ItemSheet } from '../components/item-sheet'
+import { CustomerCheckoutStage } from '../components/customer-checkout-stage'
+import { CustomerMenuStage } from '../components/customer-menu-stage'
+import { CustomerPaymentStage } from '../components/customer-payment-stage'
 import { MenuLoading, TableError } from '../components/menu-feedback'
-import { MenuStage } from '../components/menu-stage'
-import { PaymentPanel } from '../components/payment-panel'
-import { useCatalogFilter } from '../hooks/use-catalog-filter'
-import { useCustomerOrder } from '../hooks/use-customer-order'
-import { toQuoteItems, totalQuantity } from '../lib/cart'
-import { getCustomerErrorMessage } from '../lib/errors'
-import { useCartStore, type CartLine } from '../stores/cart-store'
-
-interface ItemSheetState {
-  item: PublicMenuItem
-  line: CartLine | null
-}
+import { useCustomerMenuPage } from '../hooks/use-customer-menu-page'
 
 export function CustomerMenuPage() {
   const { code = '' } = useParams()
   const tableCode = code.trim()
-  const setTable = useCartStore((state) => state.setTable)
-  const lines = useCartStore((state) => state.lines)
-  const addLine = useCartStore((state) => state.addLine)
-  const updateLine = useCartStore((state) => state.updateLine)
-  const setQty = useCartStore((state) => state.setQty)
-  const removeLine = useCartStore((state) => state.removeLine)
-  const clearCart = useCartStore((state) => state.clear)
-  const [cartOpen, setCartOpen] = useState(false)
-  const [itemSheet, setItemSheet] = useState<ItemSheetState | null>(null)
-
-  const menuQuery = usePublicMenu(tableCode)
-  const quoteItems = useMemo(() => toQuoteItems(lines), [lines])
-  const cartCount = totalQuantity(lines)
-  const quoteQuery = useQuote(tableCode, quoteItems)
-  const quote = quoteQuery.data
-  const order = useCustomerOrder({ tableCode, quote, quoteItems })
-  const menu = menuQuery.data
-  const catalog = useCatalogFilter(menu?.categories)
-
-  useEffect(() => {
-    if (tableCode) {
-      setTable(tableCode)
-    }
-  }, [setTable, tableCode])
-
-  useEffect(() => {
-    if (order.paymentStatus.data?.status === 'PAID') {
-      clearCart()
-    }
-  }, [clearCart, order.paymentStatus.data?.status])
-
-  const quoteError = quoteQuery.error
-    ? getCustomerErrorMessage(quoteQuery.error)
-    : null
-  const quoteLoading = quoteQuery.isFetching
-  const statusError = order.paymentStatus.error
-    ? getCustomerErrorMessage(order.paymentStatus.error)
-    : null
-  const tableError =
-    menuQuery.error instanceof ApiError && menuQuery.error.status === 404
-      ? menuQuery.error.message
-      : menuQuery.error
-        ? getCustomerErrorMessage(menuQuery.error)
-        : null
-
-  function openItem(item: PublicMenuItem) {
-    setItemSheet({ item, line: null })
-  }
-
-  function handleSaveLine(input: Parameters<typeof addLine>[0]) {
-    if (itemSheet?.line) {
-      updateLine(itemSheet.line.id, input)
-    } else {
-      addLine(input)
-    }
-    setItemSheet(null)
-  }
-
-  function handleEditLine(line: CartLine) {
-    const item = menu?.categories
-      .flatMap((category) => category.items)
-      .find((candidate) => candidate.id === line.menuItemId)
-    if (item) {
-      setCartOpen(false)
-      setItemSheet({ item, line })
-    }
-  }
-
-  function handleCheckout() {
-    setCartOpen(false)
-    order.startCheckout()
-  }
+  const controller = useCustomerMenuPage(tableCode)
+  const { menuQuery, menu, tableError, order } = controller
 
   if (menuQuery.isPending) {
     return <MenuLoading />
@@ -112,105 +25,37 @@ export function CustomerMenuPage() {
 
   if (order.stage === 'checkout') {
     return (
-      <div className="bg-rice text-pine min-h-svh">
-        <CustomerTopBar
-          tableName={menu.table.name}
-          cartCount={cartCount}
-          showCart={false}
-        />
-        <CheckoutPanel
-          tableName={menu.table.name}
-          lines={lines}
-          quote={quote}
-          quoteLoading={quoteLoading}
-          quoteError={quoteError}
-          submitting={order.submitting}
-          submitError={order.submitError}
-          onBack={order.backToMenu}
-          onSubmit={order.submitCheckout}
-          onRetryQuote={() => void quoteQuery.refetch()}
-        />
-      </div>
+      <CustomerCheckoutStage
+        tableName={menu.table.name}
+        cartCount={controller.cart.count}
+        lines={controller.cart.lines}
+        quote={controller.quote.data}
+        quoteLoading={controller.quote.loading}
+        quoteError={controller.quote.error}
+        controller={order}
+        onRetryQuote={controller.quote.onRetry}
+      />
     )
   }
 
   if (order.stage === 'payment' && order.activeOrder) {
-    const activeOrder = order.activeOrder
-
     return (
-      <div className="bg-rice text-pine min-h-svh">
-        <CustomerTopBar
-          tableName={menu.table.name}
-          cartCount={cartCount}
-          showCart={false}
-        />
-        <PaymentPanel
-          order={activeOrder}
-          tableName={menu.table.name}
-          method={order.paymentMethod ?? 'CASH'}
-          qris={order.qris}
-          preparing={order.preparingQris}
-          paymentError={order.paymentError}
-          status={order.paymentStatus.data}
-          statusLoading={order.paymentStatus.isPending}
-          statusError={statusError}
-          simulatorEnabled={ENABLE_PAYMENT_SIMULATOR}
-          simulating={order.simulating}
-          simulationError={order.simulationError}
-          simulationNotice={order.simulationNotice}
-          onRetryQris={() => void order.startQris(activeOrder)}
-          onSwitchCash={order.switchToCash}
-          onSimulatePayment={() => void order.simulatePayment(activeOrder)}
-          onRefreshStatus={() => void order.paymentStatus.refetch()}
-          onBackToMenu={order.backToMenu}
-        />
-      </div>
+      <CustomerPaymentStage
+        tableName={menu.table.name}
+        cartCount={controller.cart.count}
+        activeOrder={order.activeOrder}
+        controller={order}
+      />
     )
   }
 
   return (
-    <>
-      <MenuStage
-        menu={menu}
-        catalog={catalog}
-        cartCount={cartCount}
-        hasLines={lines.length > 0}
-        quote={quote}
-        quoteLoading={quoteLoading}
-        quoteError={quoteError}
-        onSelectItem={openItem}
-        onOpenCart={() => setCartOpen(true)}
-      />
-
-      {itemSheet ? (
-        <ItemSheet
-          key={`${itemSheet.item.id}:${itemSheet.line?.id ?? 'new'}`}
-          item={itemSheet.item}
-          line={itemSheet.line}
-          open
-          onOpenChange={(open) => {
-            if (!open) {
-              setItemSheet(null)
-            }
-          }}
-          onSave={handleSaveLine}
-        />
-      ) : null}
-
-      <CartSheet
-        open={cartOpen}
-        onOpenChange={setCartOpen}
-        tableName={menu.table.name}
-        lines={lines}
-        quote={quote}
-        quoteLoading={quoteLoading}
-        quoteError={quoteError}
-        onEdit={handleEditLine}
-        onRemove={removeLine}
-        onQtyChange={setQty}
-        onCheckout={handleCheckout}
-        onRetryQuote={() => void quoteQuery.refetch()}
-      />
-    </>
+    <CustomerMenuStage
+      menu={menu}
+      catalog={controller.catalog}
+      quote={controller.quote}
+      cart={controller.cart}
+      itemSheet={controller.itemSheet}
+    />
   )
 }

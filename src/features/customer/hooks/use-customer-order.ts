@@ -3,12 +3,12 @@ import { customerApi, usePaymentStatus } from '../api/customer-api'
 import type {
   CreatedOrder,
   PaymentMethod,
-  QrisPayment,
   QuoteInputItem,
   QuoteTotals,
 } from '../api/types'
 import type { CheckoutFormValues } from '../components/checkout-panel'
 import { getCustomerErrorMessage } from '../lib/errors'
+import { useQrisPayment } from './use-qris-payment'
 
 type Stage = 'menu' | 'checkout' | 'payment'
 
@@ -34,15 +34,10 @@ export function useCustomerOrder({
   const [stage, setStage] = useState<Stage>('menu')
   const [activeOrder, setActiveOrder] = useState<CreatedOrder | null>(null)
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null)
-  const [qris, setQris] = useState<QrisPayment | null>(null)
-  const [preparingQris, setPreparingQris] = useState(false)
-  const [paymentError, setPaymentError] = useState<string | null>(null)
-  const [simulating, setSimulating] = useState(false)
-  const [simulationError, setSimulationError] = useState<string | null>(null)
-  const [simulationNotice, setSimulationNotice] = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const idempotencyKey = useRef<string | null>(null)
+  const qrisPayment = useQrisPayment(tableCode)
   const paymentStatus = usePaymentStatus(
     tableCode,
     activeOrder?.id ?? null,
@@ -59,46 +54,17 @@ export function useCustomerOrder({
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [stage])
 
+  function resetOrderState() {
+    setActiveOrder(null)
+    setPaymentMethod(null)
+    qrisPayment.clearPaymentFeedback()
+    setSubmitError(null)
+    idempotencyKey.current = null
+  }
+
   function startCheckout() {
     setSubmitError(null)
     setStage('checkout')
-  }
-
-  async function startQris(order: CreatedOrder) {
-    setPreparingQris(true)
-    setPaymentError(null)
-    setSimulationError(null)
-    setSimulationNotice(null)
-
-    try {
-      const payment = await customerApi.payOnline(tableCode, order.id)
-      setQris(payment)
-    } catch (error) {
-      setPaymentError(getCustomerErrorMessage(error))
-    } finally {
-      setPreparingQris(false)
-    }
-  }
-
-  async function simulatePayment(order: CreatedOrder) {
-    if (simulating) {
-      return
-    }
-
-    setSimulating(true)
-    setSimulationError(null)
-    setSimulationNotice(null)
-
-    try {
-      await customerApi.simulatePayment(tableCode, order.id)
-      setSimulationNotice(
-        'Simulasi dikirim ke Xendit. Menunggu status pembayaran...',
-      )
-    } catch (error) {
-      setSimulationError(getCustomerErrorMessage(error))
-    } finally {
-      setSimulating(false)
-    }
   }
 
   async function submitCheckout(values: CheckoutFormValues) {
@@ -120,14 +86,11 @@ export function useCustomerOrder({
 
       setActiveOrder(order)
       setPaymentMethod(values.paymentMethod)
-      setQris(null)
-      setPaymentError(null)
-      setSimulationError(null)
-      setSimulationNotice(null)
+      qrisPayment.clearPaymentFeedback()
       setStage('payment')
 
       if (values.paymentMethod === 'QRIS') {
-        await startQris(order)
+        await qrisPayment.startQris(order)
       }
     } catch (error) {
       setSubmitError(getCustomerErrorMessage(error))
@@ -138,42 +101,34 @@ export function useCustomerOrder({
 
   function switchToCash() {
     setPaymentMethod('CASH')
-    setQris(null)
-    setPaymentError(null)
-    setSimulationError(null)
-    setSimulationNotice(null)
+    qrisPayment.clearPaymentFeedback()
   }
 
   function backToMenu() {
     setStage('menu')
-    setActiveOrder(null)
-    setPaymentMethod(null)
-    setQris(null)
-    setPaymentError(null)
-    setSimulationError(null)
-    setSimulationNotice(null)
-    setSubmitError(null)
-    idempotencyKey.current = null
+    resetOrderState()
   }
 
   return {
     stage,
     activeOrder,
     paymentMethod,
-    qris,
-    preparingQris,
-    paymentError,
-    simulating,
-    simulationError,
-    simulationNotice,
+    qris: qrisPayment.qris,
+    preparingQris: qrisPayment.preparingQris,
+    paymentError: qrisPayment.paymentError,
+    simulating: qrisPayment.simulating,
+    simulationError: qrisPayment.simulationError,
+    simulationNotice: qrisPayment.simulationNotice,
     submitError,
     submitting,
     paymentStatus,
     startCheckout,
-    startQris,
-    simulatePayment,
+    startQris: qrisPayment.startQris,
+    simulatePayment: qrisPayment.simulatePayment,
     submitCheckout,
     switchToCash,
     backToMenu,
   }
 }
+
+export type CustomerOrderController = ReturnType<typeof useCustomerOrder>

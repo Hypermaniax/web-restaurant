@@ -1,5 +1,6 @@
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
   adminApi,
@@ -9,17 +10,16 @@ import {
   useModifierGroups,
 } from '../api/admin-api'
 import type { MenuItem } from '../api/types'
-import { ConfirmDialog } from '../components/confirm-dialog'
-import { DataTableSkeleton } from '../components/data-table-skeleton'
-import { EmptyState } from '../components/empty-state'
+import { AdminErrorState } from '../components/admin-error-state'
+import { MenuDeleteDialog } from '../components/menu-delete-dialog'
 import { MenuDialog } from '../components/menu-dialog'
+import { MenuEmptyState, MenuLoading } from '../components/menu-feedback'
 import { MenuItemTable } from '../components/menu-item-table'
 import { Pagination } from '../components/pagination'
 import { PageHeader } from '../components/page-header'
-import { getErrorMessage } from '../lib/errors'
 import { useAdminMutation } from '../hooks/use-admin-mutation'
-import { toast } from 'sonner'
 import { usePagination } from '../hooks/use-pagination'
+import { getErrorMessage } from '../lib/errors'
 
 export function MenuPage() {
   const { page, pageSize, paginationProps } = usePagination()
@@ -76,24 +76,13 @@ export function MenuPage() {
       />
 
       {menuQuery.isLoading ? (
-        <DataTableSkeleton
-          columns={['Menu', 'Kategori', 'Harga', 'Tersedia', 'Status', 'Aksi']}
-          leading
-        />
+        <MenuLoading />
       ) : menuQuery.isError ? (
-        <div className="border-destructive/20 bg-destructive/5 rounded-2xl border p-6">
-          <p className="text-destructive font-semibold">Menu gagal dimuat</p>
-          <p className="text-muted-foreground mt-1 text-sm">
-            {getErrorMessage(menuQuery.error)}
-          </p>
-          <Button
-            className="mt-4"
-            variant="outline"
-            onClick={() => void menuQuery.refetch()}
-          >
-            Coba lagi
-          </Button>
-        </div>
+        <AdminErrorState
+          title="Menu gagal dimuat"
+          message={getErrorMessage(menuQuery.error)}
+          onRetry={() => void menuQuery.refetch()}
+        />
       ) : menuQuery.data && menuQuery.data.meta.total > 0 ? (
         <>
           {menuQuery.data.items.length > 0 ? (
@@ -110,16 +99,7 @@ export function MenuPage() {
           <Pagination meta={menuQuery.data.meta} {...paginationProps} />
         </>
       ) : (
-        <EmptyState
-          title="Belum ada menu"
-          description="Tambahkan menu pertama, lengkapi harga, foto, dan modifier bila perlu."
-          action={
-            <Button variant="accent" onClick={openCreate}>
-              <Plus />
-              Tambah menu
-            </Button>
-          }
-        />
+        <MenuEmptyState onCreate={openCreate} />
       )}
 
       <MenuDialog
@@ -132,22 +112,11 @@ export function MenuPage() {
         onImageFileChange={setImageFile}
       />
 
-      <ConfirmDialog
-        open={Boolean(deleting)}
-        onOpenChange={(open) => {
-          if (!open) setDeleting(null)
-        }}
-        title="Nonaktifkan menu?"
-        description={
-          deleting
-            ? `Menu “${deleting.name}” tidak akan tampil di katalog customer.`
-            : ''
-        }
-        confirmLabel="Nonaktifkan"
+      <MenuDeleteDialog
+        item={deleting}
         isPending={removeMutation.isPending}
-        onConfirm={() => {
-          if (deleting) removeMutation.mutate(deleting)
-        }}
+        onClose={() => setDeleting(null)}
+        onConfirm={removeMutation.mutate}
       />
     </div>
   )

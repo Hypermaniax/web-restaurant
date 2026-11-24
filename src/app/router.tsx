@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, type ComponentType, type ReactNode } from 'react'
 import { createBrowserRouter } from 'react-router-dom'
 import { LandingPage } from '@/features/landing/pages/landing-page'
 import { NotFoundPage } from '@/features/landing/pages/not-found-page'
@@ -8,13 +8,11 @@ import {
   AdminOnly,
 } from '@/features/admin/auth/admin-route-guards'
 import { AdminShell } from '@/features/admin/layout/admin-shell'
-import {
-  ModifiersPageSkeleton,
-  OrdersPageSkeleton,
-  ReportsPageSkeleton,
-  TablePageSkeleton,
-  TablesPageSkeleton,
-} from '@/features/admin/components/admin-page-skeletons'
+import { ModifiersPageSkeleton } from '@/features/admin/components/skeletons/modifiers-page-skeleton'
+import { OrdersPageSkeleton } from '@/features/admin/components/skeletons/orders-page-skeleton'
+import { ReportsPageSkeleton } from '@/features/admin/components/skeletons/reports-page-skeleton'
+import { TablePageSkeleton } from '@/features/admin/components/skeletons/table-page-skeleton'
+import { TablesPageSkeleton } from '@/features/admin/components/skeletons/tables-page-skeleton'
 import { SettingsLoading } from '@/features/admin/components/settings-loading'
 import {
   AdminLoginSkeleton,
@@ -22,60 +20,74 @@ import {
   DisplaySkeleton,
 } from '@/components/route-skeletons'
 
-const CustomerMenuPage = lazy(() =>
-  import('@/features/customer/pages/customer-menu-page').then((module) => ({
-    default: module.CustomerMenuPage,
-  })),
+function lazyPage<TModule extends Record<string, unknown>>(
+  load: () => Promise<TModule>,
+  exportName: keyof TModule,
+) {
+  return lazy(async () => {
+    const module = await load()
+    return { default: module[exportName] as ComponentType }
+  })
+}
+
+interface SuspendedPageProps {
+  fallback: ReactNode
+  adminOnly?: boolean
+  children: ReactNode
+}
+
+function SuspendedPage({
+  fallback,
+  adminOnly = false,
+  children,
+}: SuspendedPageProps) {
+  const content = <Suspense fallback={fallback}>{children}</Suspense>
+  return adminOnly ? <AdminOnly>{content}</AdminOnly> : content
+}
+
+const CustomerMenuPage = lazyPage(
+  () => import('@/features/customer/pages/customer-menu-page'),
+  'CustomerMenuPage',
 )
-const DisplayPage = lazy(() =>
-  import('@/features/display/pages/display-page').then((module) => ({
-    default: module.DisplayPage,
-  })),
+const DisplayPage = lazyPage(
+  () => import('@/features/display/pages/display-page'),
+  'DisplayPage',
 )
-const AdminLoginPage = lazy(() =>
-  import('@/features/admin/auth/admin-login-page').then((module) => ({
-    default: module.AdminLoginPage,
-  })),
+const AdminLoginPage = lazyPage(
+  () => import('@/features/admin/auth/admin-login-page'),
+  'AdminLoginPage',
 )
-const CategoriesPage = lazy(() =>
-  import('@/features/admin/pages/categories-page').then((module) => ({
-    default: module.CategoriesPage,
-  })),
+const CategoriesPage = lazyPage(
+  () => import('@/features/admin/pages/categories-page'),
+  'CategoriesPage',
 )
-const MenuPage = lazy(() =>
-  import('@/features/admin/pages/menu-page').then((module) => ({
-    default: module.MenuPage,
-  })),
+const MenuPage = lazyPage(
+  () => import('@/features/admin/pages/menu-page'),
+  'MenuPage',
 )
-const ModifiersPage = lazy(() =>
-  import('@/features/admin/pages/modifiers-page').then((module) => ({
-    default: module.ModifiersPage,
-  })),
+const ModifiersPage = lazyPage(
+  () => import('@/features/admin/pages/modifiers-page'),
+  'ModifiersPage',
 )
-const OrdersPage = lazy(() =>
-  import('@/features/admin/pages/orders-page').then((module) => ({
-    default: module.OrdersPage,
-  })),
+const OrdersPage = lazyPage(
+  () => import('@/features/admin/pages/orders-page'),
+  'OrdersPage',
 )
-const ReportsPage = lazy(() =>
-  import('@/features/admin/pages/reports-page').then((module) => ({
-    default: module.ReportsPage,
-  })),
+const ReportsPage = lazyPage(
+  () => import('@/features/admin/pages/reports-page'),
+  'ReportsPage',
 )
-const SettingsPage = lazy(() =>
-  import('@/features/admin/pages/settings-page').then((module) => ({
-    default: module.SettingsPage,
-  })),
+const SettingsPage = lazyPage(
+  () => import('@/features/admin/pages/settings-page'),
+  'SettingsPage',
 )
-const StaffPage = lazy(() =>
-  import('@/features/admin/pages/staff-page').then((module) => ({
-    default: module.StaffPage,
-  })),
+const StaffPage = lazyPage(
+  () => import('@/features/admin/pages/staff-page'),
+  'StaffPage',
 )
-const TablesPage = lazy(() =>
-  import('@/features/admin/pages/tables-page').then((module) => ({
-    default: module.TablesPage,
-  })),
+const TablesPage = lazyPage(
+  () => import('@/features/admin/pages/tables-page'),
+  'TablesPage',
 )
 
 export const router = createBrowserRouter([
@@ -86,17 +98,17 @@ export const router = createBrowserRouter([
   {
     path: '/t/:code',
     element: (
-      <Suspense fallback={<CustomerMenuSkeleton />}>
+      <SuspendedPage fallback={<CustomerMenuSkeleton />}>
         <CustomerMenuPage />
-      </Suspense>
+      </SuspendedPage>
     ),
   },
   {
     path: '/admin/login',
     element: (
-      <Suspense fallback={<AdminLoginSkeleton />}>
+      <SuspendedPage fallback={<AdminLoginSkeleton />}>
         <AdminLoginPage />
-      </Suspense>
+      </SuspendedPage>
     ),
   },
   {
@@ -113,126 +125,115 @@ export const router = createBrowserRouter([
           {
             path: 'catalog/categories',
             element: (
-              <AdminOnly>
-                <Suspense
-                  fallback={
-                    <TablePageSkeleton
-                      eyebrow="Katalog"
-                      title="Kategori menu"
-                      description="Atur urutan dan status kategori. Kategori nonaktif tidak tampil di menu customer."
-                      actionLabel="Tambah kategori"
-                      columns={['Nama', 'Urutan', 'Status', 'Aksi']}
-                      rows={5}
-                    />
-                  }
-                >
-                  <CategoriesPage />
-                </Suspense>
-              </AdminOnly>
+              <SuspendedPage
+                adminOnly
+                fallback={
+                  <TablePageSkeleton
+                    eyebrow="Katalog"
+                    title="Kategori menu"
+                    description="Atur urutan dan status kategori. Kategori nonaktif tidak tampil di menu customer."
+                    actionLabel="Tambah kategori"
+                    columns={['Nama', 'Urutan', 'Status', 'Aksi']}
+                    rows={5}
+                  />
+                }
+              >
+                <CategoriesPage />
+              </SuspendedPage>
             ),
           },
           {
             path: 'catalog/menu',
             element: (
-              <AdminOnly>
-                <Suspense
-                  fallback={
-                    <TablePageSkeleton
-                      eyebrow="Katalog"
-                      title="Menu"
-                      description="Kelola item, harga, foto, modifier, dan ketersediaan menu."
-                      actionLabel="Tambah menu"
-                      columns={[
-                        'Menu',
-                        'Kategori',
-                        'Harga',
-                        'Tersedia',
-                        'Status',
-                        'Aksi',
-                      ]}
-                      leading
-                    />
-                  }
-                >
-                  <MenuPage />
-                </Suspense>
-              </AdminOnly>
+              <SuspendedPage
+                adminOnly
+                fallback={
+                  <TablePageSkeleton
+                    eyebrow="Katalog"
+                    title="Menu"
+                    description="Kelola item, harga, foto, modifier, dan ketersediaan menu."
+                    actionLabel="Tambah menu"
+                    columns={[
+                      'Menu',
+                      'Kategori',
+                      'Harga',
+                      'Tersedia',
+                      'Status',
+                      'Aksi',
+                    ]}
+                    leading
+                  />
+                }
+              >
+                <MenuPage />
+              </SuspendedPage>
             ),
           },
           {
             path: 'catalog/modifiers',
             element: (
-              <AdminOnly>
-                <Suspense fallback={<ModifiersPageSkeleton />}>
-                  <ModifiersPage />
-                </Suspense>
-              </AdminOnly>
+              <SuspendedPage adminOnly fallback={<ModifiersPageSkeleton />}>
+                <ModifiersPage />
+              </SuspendedPage>
             ),
           },
           {
             path: 'tables',
             element: (
-              <AdminOnly>
-                <Suspense fallback={<TablesPageSkeleton />}>
-                  <TablesPage />
-                </Suspense>
-              </AdminOnly>
+              <SuspendedPage adminOnly fallback={<TablesPageSkeleton />}>
+                <TablesPage />
+              </SuspendedPage>
             ),
           },
           {
             path: 'staff',
             element: (
-              <AdminOnly>
-                <Suspense
-                  fallback={
-                    <TablePageSkeleton
-                      eyebrow="Restoran"
-                      title="Staff"
-                      description="Kelola akses ADMIN, CASHIER, dan KITCHEN. API tetap menjadi sumber enforcement."
-                      actionLabel="Tambah staff"
-                      columns={[
-                        'Staff',
-                        'Role',
-                        'Status',
-                        'Login terakhir',
-                        'Aksi',
-                      ]}
-                      rows={5}
-                      leading
-                    />
-                  }
-                >
-                  <StaffPage />
-                </Suspense>
-              </AdminOnly>
+              <SuspendedPage
+                adminOnly
+                fallback={
+                  <TablePageSkeleton
+                    eyebrow="Restoran"
+                    title="Staff"
+                    description="Kelola akses ADMIN, CASHIER, dan KITCHEN. API tetap menjadi sumber enforcement."
+                    actionLabel="Tambah staff"
+                    columns={[
+                      'Staff',
+                      'Role',
+                      'Status',
+                      'Login terakhir',
+                      'Aksi',
+                    ]}
+                    rows={5}
+                    leading
+                  />
+                }
+              >
+                <StaffPage />
+              </SuspendedPage>
             ),
           },
           {
             path: 'orders',
             element: (
-              <Suspense fallback={<OrdersPageSkeleton />}>
+              <SuspendedPage fallback={<OrdersPageSkeleton />}>
                 <OrdersPage />
-              </Suspense>
+              </SuspendedPage>
             ),
           },
           {
             path: 'reports',
             element: (
-              <AdminOnly>
-                <Suspense fallback={<ReportsPageSkeleton />}>
-                  <ReportsPage />
-                </Suspense>
-              </AdminOnly>
+              <SuspendedPage adminOnly fallback={<ReportsPageSkeleton />}>
+                <ReportsPage />
+              </SuspendedPage>
             ),
           },
           {
             path: 'settings',
             element: (
-              <AdminOnly>
-                <Suspense fallback={<SettingsLoading />}>
-                  <SettingsPage />
-                </Suspense>
-              </AdminOnly>
+              <SuspendedPage adminOnly fallback={<SettingsLoading />}>
+                <SettingsPage />
+              </SuspendedPage>
             ),
           },
         ],
@@ -242,9 +243,9 @@ export const router = createBrowserRouter([
   {
     path: '/display',
     element: (
-      <Suspense fallback={<DisplaySkeleton />}>
+      <SuspendedPage fallback={<DisplaySkeleton />}>
         <DisplayPage />
-      </Suspense>
+      </SuspendedPage>
     ),
   },
   {

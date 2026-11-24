@@ -1,47 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { DisplayQueueItem } from '../api/display-api'
+import { scheduleChime } from '../lib/chime'
+import { readMuted, writeMuted } from '../lib/muted-preference'
 import { getNewReadyNumbers } from '../lib/queue'
 
-const MUTE_STORAGE_KEY = 'rembuk.display.muted'
 const HIGHLIGHT_MS = 12_000
-
-function readMuted(): boolean {
-  try {
-    return window.localStorage.getItem(MUTE_STORAGE_KEY) === 'true'
-  } catch {
-    return false
-  }
-}
-
-function writeMuted(muted: boolean) {
-  try {
-    window.localStorage.setItem(MUTE_STORAGE_KEY, String(muted))
-  } catch {
-    return
-  }
-}
-
-function scheduleChime(context: AudioContext) {
-  const start = context.currentTime
-  const notes = [880, 1174.66]
-
-  notes.forEach((frequency, index) => {
-    const noteStart = start + index * 0.16
-    const oscillator = context.createOscillator()
-    const gain = context.createGain()
-
-    oscillator.type = 'sine'
-    oscillator.frequency.value = frequency
-    gain.gain.setValueAtTime(0.0001, noteStart)
-    gain.gain.exponentialRampToValueAtTime(0.2, noteStart + 0.03)
-    gain.gain.exponentialRampToValueAtTime(0.0001, noteStart + 0.5)
-
-    oscillator.connect(gain)
-    gain.connect(context.destination)
-    oscillator.start(noteStart)
-    oscillator.stop(noteStart + 0.55)
-  })
-}
 
 export function useReadyChime(ready: DisplayQueueItem[]) {
   const [muted, setMuted] = useState(readMuted)

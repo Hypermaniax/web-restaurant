@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { formatCurrency, formatDateTime } from '@/lib/format'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { formatCurrency } from '@/lib/format'
 import {
   useCancellationReport,
   useDailyReport,
@@ -9,16 +9,17 @@ import {
   useTaxReport,
   type ReportType,
 } from '../api/reports-api'
-import { EmptyState } from '../components/empty-state'
-import { ReportCard, ReportErrorCard } from '../components/report-card'
+import { ReportCancellationsTab } from '../components/report-cancellations-tab'
 import { ReportDailyTab } from '../components/report-daily-tab'
+import { ReportErrorCard } from '../components/report-card'
+import { ReportItemsTab } from '../components/report-items-tab'
 import { ReportMetric } from '../components/report-metric'
 import { ReportMetricsLoading } from '../components/report-metrics-loading'
-import { ReportTable } from '../components/report-table'
+import { ReportPaymentsTab } from '../components/report-payments-tab'
+import { ReportTaxTab } from '../components/report-tax-tab'
 import { ReportsHeader } from '../components/reports-header'
 import { useReportExport } from '../hooks/use-report-export'
 import { getErrorMessage } from '../lib/errors'
-import { getOrderTypeLabel, getPaymentMethodLabel } from '../lib/orders'
 import { todayJakarta } from '../lib/reports'
 
 export function ReportsPage() {
@@ -84,121 +85,10 @@ export function ReportsPage() {
 
             <ReportDailyTab report={daily.data} />
 
-            <TabsContent value="payments">
-              <ReportCard
-                title="Rekap metode bayar"
-                description={`Total pembayaran ${formatCurrency(payments.data?.totalAmount ?? 0)}.`}
-                isLoading={payments.isLoading}
-                isError={payments.isError}
-                error={payments.error}
-                onRetry={() => void payments.refetch()}
-              >
-                {payments.data && payments.data.rows.length > 0 ? (
-                  <ReportTable
-                    headers={[
-                      'Tipe order',
-                      'Metode',
-                      'Jumlah order',
-                      'Nominal',
-                    ]}
-                    rows={payments.data.rows.map((row) => [
-                      getOrderTypeLabel(row.orderType),
-                      getPaymentMethodLabel(row.paymentMethod),
-                      row.orderCount,
-                      formatCurrency(row.amount),
-                    ])}
-                  />
-                ) : (
-                  <EmptyState
-                    title="Belum ada pembayaran"
-                    description="Belum ada pembayaran pada tanggal ini."
-                  />
-                )}
-              </ReportCard>
-            </TabsContent>
-
-            <TabsContent value="tax">
-              <ReportCard
-                title="Pajak terkumpul"
-                description={`Total pajak ${formatCurrency(tax.data?.totalTax ?? 0)}.`}
-                isLoading={tax.isLoading}
-                isError={tax.isError}
-                error={tax.error}
-                onRetry={() => void tax.refetch()}
-              >
-                {tax.data && tax.data.rows.length > 0 ? (
-                  <ReportTable
-                    headers={['Tipe order', 'Jumlah order', 'Pajak']}
-                    rows={tax.data.rows.map((row) => [
-                      getOrderTypeLabel(row.orderType),
-                      row.orderCount,
-                      formatCurrency(row.taxAmount),
-                    ])}
-                  />
-                ) : (
-                  <EmptyState
-                    title="Belum ada pajak"
-                    description="Belum ada order dengan pajak pada tanggal ini."
-                  />
-                )}
-              </ReportCard>
-            </TabsContent>
-
-            <TabsContent value="cancellations">
-              <ReportCard
-                title="Order unpaid yang dibatalkan"
-                description={`${cancellations.data?.count ?? 0} order · ${formatCurrency(cancellations.data?.totalAmount ?? 0)}.`}
-                isLoading={cancellations.isLoading}
-                isError={cancellations.isError}
-                error={cancellations.error}
-                onRetry={() => void cancellations.refetch()}
-              >
-                {cancellations.data && cancellations.data.rows.length > 0 ? (
-                  <ReportTable
-                    headers={['Order', 'Tipe', 'Total', 'Alasan', 'Waktu']}
-                    rows={cancellations.data.rows.map((row) => [
-                      row.orderNumber,
-                      getOrderTypeLabel(row.orderType),
-                      formatCurrency(row.total),
-                      row.reason ?? '-',
-                      row.cancelledAt ? formatDateTime(row.cancelledAt) : '-',
-                    ])}
-                  />
-                ) : (
-                  <EmptyState
-                    title="Tidak ada pembatalan"
-                    description="Tidak ada order unpaid yang dibatalkan pada tanggal ini."
-                  />
-                )}
-              </ReportCard>
-            </TabsContent>
-
-            <TabsContent value="items">
-              <ReportCard
-                title="Item terlaris"
-                description={`${items.data?.totalQty ?? 0} item terjual · ${formatCurrency(items.data?.totalRevenue ?? 0)}.`}
-                isLoading={items.isLoading}
-                isError={items.isError}
-                error={items.error}
-                onRetry={() => void items.refetch()}
-              >
-                {items.data && items.data.rows.length > 0 ? (
-                  <ReportTable
-                    headers={['Item', 'Qty', 'Omzet']}
-                    rows={items.data.rows.map((row, index) => [
-                      `${index + 1}. ${row.name}`,
-                      row.qty,
-                      formatCurrency(row.revenue),
-                    ])}
-                  />
-                ) : (
-                  <EmptyState
-                    title="Belum ada item terjual"
-                    description="Belum ada item terjual pada tanggal ini."
-                  />
-                )}
-              </ReportCard>
-            </TabsContent>
+            <ReportPaymentsTab report={payments} />
+            <ReportTaxTab report={tax} />
+            <ReportCancellationsTab report={cancellations} />
+            <ReportItemsTab report={items} />
           </Tabs>
         </>
       ) : null}

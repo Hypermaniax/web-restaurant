@@ -1,6 +1,6 @@
-import { Button } from '@/components/ui/button'
 import { Card, CardDescription, CardHeader } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { AdminErrorState } from './admin-error-state'
 
 const statLabels = [
   'Omzet hari ini',
@@ -36,12 +36,10 @@ interface OverviewErrorProps {
 
 export function OverviewError({ message, onRetry }: OverviewErrorProps) {
   return (
-    <div className="border-destructive/20 bg-destructive/5 rounded-2xl border p-6">
-      <p className="text-destructive font-semibold">Ringkasan gagal dimuat</p>
-      <p className="text-muted-foreground mt-1 text-sm">{message}</p>
-      <Button className="mt-4" variant="outline" onClick={onRetry}>
-        Coba lagi
-      </Button>
-    </div>
+    <AdminErrorState
+      title="Ringkasan gagal dimuat"
+      message={message}
+      onRetry={onRetry}
+    />
   )
 }

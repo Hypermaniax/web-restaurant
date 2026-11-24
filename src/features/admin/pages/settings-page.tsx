@@ -1,9 +1,6 @@
-import { LockKeyhole } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { useSettings, useTaxRules } from '../api/admin-api'
-import { EmptyState } from '../components/empty-state'
-import { PageHeader } from '../components/page-header'
+import { AdminErrorState } from '../components/admin-error-state'
+import { SettingsHeader } from '../components/settings-header'
 import { SettingsLoading } from '../components/settings-loading'
 import { SettingsPreviewCard } from '../components/settings-preview-card'
 import {
@@ -29,25 +26,14 @@ export function SettingsPage() {
   if (settings.isError || taxRules.isError) {
     return (
       <div className="flex flex-col gap-6">
-        <PageHeader
-          eyebrow="Pengaturan"
-          title="Pajak & service"
-          description="Pengaturan outlet gagal dimuat."
-        />
-        <EmptyState
+        <SettingsHeader description="Pengaturan outlet gagal dimuat." />
+        <AdminErrorState
           title="Gagal memuat pengaturan"
-          description={getErrorMessage(settings.error ?? taxRules.error)}
-          action={
-            <Button
-              variant="outline"
-              onClick={() => {
-                void settings.refetch()
-                void taxRules.refetch()
-              }}
-            >
-              Coba lagi
-            </Button>
-          }
+          message={getErrorMessage(settings.error ?? taxRules.error)}
+          onRetry={() => {
+            void settings.refetch()
+            void taxRules.refetch()
+          }}
         />
       </div>
     )
@@ -59,16 +45,9 @@ export function SettingsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
-        eyebrow="Pengaturan"
-        title="Pajak & service"
+      <SettingsHeader
         description="Atur pajak, service charge, expiry, dan footer struk. Perubahan hanya berlaku untuk order baru."
-        actions={
-          <Badge variant="outline" className="h-9 gap-2 px-3">
-            <LockKeyhole />
-            Admin only
-          </Badge>
-        }
+        showAdminBadge
       />
 
       <SettingsQrWarning qrBaseUrl={settings.data.qrBaseUrl} />

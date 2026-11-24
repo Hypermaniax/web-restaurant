@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react'
-import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
@@ -9,6 +8,7 @@ import {
 } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getErrorMessage } from '../lib/errors'
+import { AdminErrorState } from './admin-error-state'
 
 interface ReportErrorCardProps {
   title: string
@@ -21,15 +21,7 @@ export function ReportErrorCard({
   message,
   onRetry,
 }: ReportErrorCardProps) {
-  return (
-    <div className="border-destructive/20 bg-destructive/5 rounded-2xl border p-6">
-      <p className="text-destructive font-semibold">{title}</p>
-      <p className="text-muted-foreground mt-1 text-sm">{message}</p>
-      <Button className="mt-4" variant="outline" onClick={onRetry}>
-        Coba lagi
-      </Button>
-    </div>
-  )
+  return <AdminErrorState title={title} message={message} onRetry={onRetry} />
 }
 
 interface ReportCardProps {
